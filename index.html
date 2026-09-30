@@ -169,10 +169,9 @@
   .ship-detail p{color:var(--mist);margin-top:4px;}
   .ship-detail-venue{margin-top:8px;}
   .ship-detail-venue b{color:var(--ship-accent);}
-  .ship-detail a,.ship-sources a{display:block;color:var(--ship-accent);font-size:11px;padding:5px 0;}
-  .ship-jump{font:inherit;border:1px solid var(--ship-accent);background:transparent;color:var(--ship-accent);border-radius:6px;min-height:44px;padding:7px 10px;margin-top:10px;cursor:pointer;}
-  .ship-pending-list,.ship-sources{border-top:1px solid #9db2c022;margin:0 14px;padding:10px 0;font-size:11px;color:var(--mist);}
-  .ship-pending-list summary,.ship-sources summary{cursor:pointer;min-height:32px;line-height:32px;}
+  .ship-detail a,  .ship-jump{font:inherit;border:1px solid var(--ship-accent);background:transparent;color:var(--ship-accent);border-radius:6px;min-height:44px;padding:7px 10px;margin-top:10px;cursor:pointer;}
+  .ship-pending-list{border-top:1px solid #9db2c022;margin:0 14px;padding:10px 0;font-size:11px;color:var(--mist);}
+  .ship-pending-list summary{cursor:pointer;min-height:32px;line-height:32px;}
   .ship-pending{font:inherit;color:var(--sand);background:#102b42;border:1px solid #9db2c022;border-radius:7px;width:100%;padding:9px;margin:4px 0;display:flex;gap:9px;align-items:center;text-align:left;min-height:44px;cursor:pointer;}
   .ship-pending.selected{border-color:var(--ship-accent);}
   .ship-pending b{color:var(--ship-accent);}
@@ -606,38 +605,6 @@
   }
   #viewport-6 .cinematic-swipe-hint{display:none}
 
-  .d6-route-ribbon{
-    margin:8px 3px 2px;
-    display:grid;
-    grid-template-columns:minmax(0,1fr) auto minmax(0,1fr) auto minmax(0,1fr);
-    align-items:center;gap:5px;
-  }
-  .d6-route-stop{
-    min-width:0;padding:7px 8px;border-radius:10px;
-    border:1px solid rgba(159,184,201,.18);
-    background:rgba(6,28,47,.76);
-    transition:.22s ease;
-  }
-  .d6-route-stop small{
-    display:block;color:var(--brass);
-    font:700 7.5px 'JetBrains Mono',monospace;letter-spacing:.08em
-  }
-  .d6-route-stop b{
-    display:block;margin-top:2px;color:var(--sand);
-    font-size:9.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis
-  }
-  .d6-route-arrow{
-    color:rgba(159,184,201,.75);
-    font:700 7px 'JetBrains Mono',monospace;text-align:center;white-space:nowrap
-  }
-  .d6-route-stop.active{
-    border-color:var(--coral);
-    background:rgba(232,96,74,.08);
-    box-shadow:0 0 0 2px rgba(232,96,74,.08),0 0 15px rgba(232,96,74,.16);
-  }
-  .d6-route-stop.done{border-color:rgba(201,162,75,.38)}
-  .d6-route-stop.done small{color:#e5bf63}
-
 
   #tripmap-6 .img-pin.cinematic-active::before{
     background:radial-gradient(circle,rgba(112,217,223,.25) 0 18%,rgba(112,217,223,.11) 19% 43%,transparent 66%);
@@ -650,18 +617,17 @@
   }
 
   @media(max-width:560px){
-    .d6-route-ribbon{grid-template-columns:1fr;gap:4px}
-    .d6-route-arrow{padding:1px 0}
-    .d6-route-arrow::before{content:'↓ '}
-    .d6-route-stop{padding:6px 8px}
   }
 
 
-  .d6-clean-map-note{
-    margin:7px 3px 0;color:var(--mist);
-    font:8.5px 'JetBrains Mono',monospace;line-height:1.5;
-  }
-  .d6-clean-map-note b{color:var(--brass)}
+
+
+  .map-load-placeholder{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:24px;background:linear-gradient(145deg,#102f48,#081c2f);color:var(--mist);text-align:center;font-size:12px;z-index:20;}
+  .map-load-placeholder::before{content:"";display:block;width:62%;height:64px;border-radius:10px;background:linear-gradient(110deg,#19394f,#25495e,#19394f);opacity:.6;}
+  .map-load-placeholder strong{color:var(--sand);font-weight:500;}
+  .map-load-placeholder p{max-width:260px;line-height:1.7;}
+  .map-load-failed>.route-overlay,.map-load-failed>.pin-layer,.map-load-failed>.ship-photo-hotspot-layer,.map-load-failed>.ship-label-patch{visibility:hidden;}
+  .trip-reminder{margin-top:8px;padding:9px 10px;border-left:3px solid var(--brass);border-radius:4px;background:rgba(201,162,75,.12);color:#f6d891;font-size:11.5px;line-height:1.7;}
 
 </style>
 </head>
@@ -701,6 +667,32 @@ const DAY_TITLE = {
   "5":{date:"10/7（三）", title:"玩水日"},
   "6":{date:"10/8（四）", title:"離船返家（含 Jewel 拍照）"}
 };
+
+
+// Register before creating panels: covers embedded and future external map images.
+function handleTripImageState(img, failed){
+  if(!img || !img.matches || !img.matches('img.map-background, img.ship-photo-bg')) return;
+  const host=img.parentElement;
+  if(!host) return;
+  let placeholder=host.querySelector('.map-load-placeholder');
+  host.classList.toggle('map-load-failed',failed);
+  img.style.visibility=failed?'hidden':'';
+  if(!failed){if(placeholder) placeholder.remove();return;}
+  if(placeholder) return;
+  placeholder=document.createElement('div');
+  placeholder.className='map-load-placeholder';
+  placeholder.setAttribute('role','status');
+  const title=document.createElement('strong');
+  title.textContent='地圖暫時無法顯示';
+  const hint=document.createElement('p');
+  hint.textContent='你仍可使用下方行程與導航。若使用外部圖片，請確認圖片與 HTML 放在同一資料夾，再重新開啟。';
+  placeholder.appendChild(title);placeholder.appendChild(hint);host.appendChild(placeholder);
+}
+document.addEventListener('error',event=>handleTripImageState(event.target,true),true);
+document.addEventListener('load',event=>handleTripImageState(event.target,false),true);
+function tripReminderHTML(s){
+  return s.reminder ? '<div class="trip-reminder">'+escapeHTML(s.reminder)+'</div>' : '';
+}
 
 const DATA = {
   "1": [
@@ -746,7 +738,7 @@ const DATA = {
     {t:"13:00", n:"Ironcycle Test Run／World of Disney", dur:"雲霄飛車、逛街 · 約4h", booking:"Ironcycle 上船先搶 · Day 5 13:00 暫排體驗", who:null},
     {t:"17:45", n:"晚餐：Hollywood Spotlight Club", dur:"用餐輪替 · 約1h30分", who:null},
     {t:"20:15", n:"Dinner & Show", dur:"依 App 公告最後一晚場次", who:null},
-    {t:"21:30", n:"核對帳單、先完成大行李", dur:"App「My Charges」・晚間活動前先打包；託運行李放門口的實際截止時間依 Navigator／房內通知", who:null}
+    {t:"21:30", n:"核對帳單、先完成大行李", dur:"App「My Charges」・晚間活動前先打包；託運行李放門口的實際截止時間依 Navigator／房內通知", reminder:"⚠️ 觀賞夜間活動或煙火前，建議先整理好託運大行李，並依 Navigator／房內通知的收件時段放到房門外。", who:null}
   ],
   "6": [
     {t:"08:00", n:"濱海灣郵輪中心 MBCCS（離船）", a:"61 Marina Coastal Dr, Singapore 018947", lat:1.2667383,lng:103.8602571, dur:"離船、領行李 · 約1h30分", who:null, trans:{mode:"🚕",label:"Grab",mins:25}},
@@ -1040,13 +1032,6 @@ function shipMapHTML(day){
         <summary>待確認地點／彈性安排 · ${Object.values(SHIP_STOPS[day]).filter(s=>!s.venues.length).length} 項</summary>
         ${unknown}
       </details>
-
-      <details class="ship-sources">
-        <summary>樓層來源與行程說明</summary>
-        <p>既有樓層資料沿用目前版本；3D 圖只作視覺導覽。預約、演出、設施開放與集合站仍以當次航程 Navigator 為準。</p>
-        <a href="${DECK_PDF}" target="_blank" rel="noopener">甲板圖來源 ↗</a>
-        <a href="https://disneycruise.disney.go.com/en-au/ships/deck-plans/adventure/" target="_blank" rel="noopener">官方互動甲板圖 ↗</a>
-      </details>
     </section>`;
   }
 
@@ -1112,13 +1097,6 @@ function shipMapHTML(day){
       <details class="ship-pending-list">
         <summary>待確認地點／彈性安排 · ${Object.values(SHIP_STOPS[day]).filter(s=>!s.venues.length).length} 項</summary>
         ${unknown}
-      </details>
-
-      <details class="ship-sources">
-        <summary>樓層來源與行程說明</summary>
-        <p>樓層資料沿用目前行程檔；3D 圖只作視覺導覽，不另外改寫你的行程資料。實際開放、集合與表演仍以當次航程 Navigator 為準。</p>
-        <a href="${DECK_PDF}" target="_blank" rel="noopener">甲板圖來源 ↗</a>
-        <a href="https://disneycruise.disney.go.com/en-au/ships/deck-plans/adventure/" target="_blank" rel="noopener">官方互動甲板圖 ↗</a>
       </details>
     </section>`;
   }
@@ -1191,13 +1169,6 @@ function shipMapHTML(day){
         <summary>待確認地點／彈性安排 · ${Object.values(SHIP_STOPS[day]).filter(s=>!s.venues.length).length} 項</summary>
         ${unknown}
       </details>
-
-      <details class="ship-sources">
-        <summary>樓層來源與行程說明</summary>
-        <p>樓層資料沿用目前行程檔；3D 圖只作視覺導覽，不改寫既有行程資料。實際營業、設施開放、表演與煙火以當次航程 Navigator 為準。</p>
-        <a href="${DECK_PDF}" target="_blank" rel="noopener">甲板圖來源 ↗</a>
-        <a href="https://disneycruise.disney.go.com/en-au/ships/deck-plans/adventure/" target="_blank" rel="noopener">官方互動甲板圖 ↗</a>
-      </details>
     </section>`;
   }
 
@@ -1212,7 +1183,6 @@ function shipMapHTML(day){
     <p class="ship-caption">樓層示意・僅顯示今日活動<br>卡片排列不代表船頭／船尾位置或實際步行路線。</p>
     <div class="ship-detail" id="ship-detail-${day}" aria-live="polite"><span class="ship-detail-kicker">今日船上導覽</span><p>點上方活動看詳情；下方時間軸也能連動選取。</p></div>
     <details class="ship-pending-list"><summary>待確認地點／彈性安排 · ${Object.values(SHIP_STOPS[day]).filter(s=>!s.venues.length).length} 項</summary>${unknown}</details>
-    <details class="ship-sources"><summary>樓層來源與行程說明</summary><p>樓層核對：2026-09-30。船圖為示意；預約、晚餐輪替與演出時間沿用你的行程，仍以當次航程 Navigator 為準。</p><a href="${DECK_PDF}" target="_blank" rel="noopener">Disney Adventure 甲板圖（2025/10 版，旅行社託管）↗</a><a href="https://disneycruise.disney.go.com/en-au/ships/deck-plans/adventure/" target="_blank" rel="noopener">Disney 官方互動甲板圖 ↗</a></details>
   </section>`;
 }
 function updateShipSelection(day,i,key){
@@ -1229,7 +1199,7 @@ function updateShipSelection(day,i,key){
   setShipZoneFocus(day,[...new Set(selectedKeys.map(k=>SHIP_VENUES[k]?.zone).filter(Boolean))]);
   const venues=selectedKeys.map(k=>{
     const v=SHIP_VENUES[k];
-    return '<div class="ship-detail-venue"><b>'+escapeHTML(v.label)+'<span class="ship-zone-chip">'+escapeHTML(SHIP_ZONE_LABELS[v.zone])+'</span></b> '+escapeHTML(v.name)+(v.note?'<p>'+escapeHTML(v.note)+'</p>':'')+'<a href="'+v.source+'" target="_blank" rel="noopener">查看樓層來源 ↗</a></div>';
+    return '<div class="ship-detail-venue"><b>'+escapeHTML(v.label)+'<span class="ship-zone-chip">'+escapeHTML(SHIP_ZONE_LABELS[v.zone])+'</span></b> '+escapeHTML(v.name)+(v.note?'<p>'+escapeHTML(v.note)+'</p>':'')+'</div>';
   }).join('');
   const detail=document.getElementById('ship-detail-'+day);
   detail.innerHTML='<span class="ship-detail-kicker">行程 '+(i+1)+' · '+escapeHTML(timeLabel(s))+'</span><h3>'+escapeHTML(s.n)+'</h3>'+venues+(info.note?'<p>'+escapeHTML(info.note)+'</p>':'')+'<p>'+escapeHTML(s.dur)+'</p><button type="button" class="ship-jump" onclick="jumpToTripStop(\''+day+'\','+i+')">查看時間軸 ↓</button>';
@@ -1886,7 +1856,12 @@ function cinematicGeoPosition(day,dataIdx){
 }
 function cinematicScale(day,geoIdx){
   const arr=CINEMATIC_SCALES[day]||[];
-  return arr[geoIdx] || 1.9;
+  let scale=arr[geoIdx] || 1.45;
+  if(window.matchMedia('(max-width:560px)').matches){
+    const cap=day==='6' ? 1.62 : 1.48;
+    scale=Math.min(scale,cap);
+  }
+  return scale;
 }
 function cinematicFocusCamera(day,dataIdx,animate=true){
   if(!CINEMATIC_DAYS.has(day)) return;
@@ -1977,11 +1952,6 @@ function updateCinematicVisuals(day,dataIdx,overview=false){
   if(day==='6'){
     const panel=document.querySelector('.panel[data-panel="6"]');
     const geoIdx=cinematicGeoPosition(day,dataIdx);
-    document.querySelectorAll('[data-d6-ribbon]').forEach(el=>{
-      const n=Number(el.dataset.d6Ribbon);
-      el.classList.toggle('active',!overview && n===geoIdx);
-      el.classList.toggle('done',!overview && n<geoIdx);
-    });
   }
 }
 function cinematicSelect(day,dataIdx,animate=true){
@@ -2179,7 +2149,7 @@ function renderStops(day){
           '</span>' +
         '</div>' +
         '<div class="stop-name">' + (s.who ? '<span class="who-badge">'+s.who+'</span>' : '') + s.n + '</div>' +
-        '<div class="stop-dur">' + s.dur + '</div>' +
+        '<div class="stop-dur">' + s.dur + '</div>' + tripReminderHTML(s) +
         shipLocationHTML(day,i) + extra +
       '</div>' +
     '</li>';
@@ -2206,9 +2176,9 @@ const cinematicState = {
   '6':{idx:0,overview:true}
 };
 const CINEMATIC_SCALES = {
-  '1':[1.58,2.00,2.22,2.20,2.08,1.68],
-  '2':[1.95,2.08,1.66,2.12,2.16,2.18],
-  '6':[1.62,2.28,2.48]
+  '1':[1.24,1.38,1.48,1.48,1.42,1.28],
+  '2':[1.30,1.40,1.34,1.42,1.46,1.46],
+  '6':[1.30,1.56,1.62]
 };
 const CINEMATIC_FOCUS = {
   '6':[
@@ -2233,15 +2203,7 @@ function cinematicControlsHTML(day){
   </div>`;
 }
 
-function day6RouteRibbonHTML(){
-  return `<div class="d6-route-ribbon" id="d6-route-ribbon">
-    <div class="d6-route-stop" data-d6-ribbon="0"><small>08:00 · START</small><b>MBCCS 離船</b></div>
-    <div class="d6-route-arrow">Grab · 約25分 →</div>
-    <div class="d6-route-stop" data-d6-ribbon="1"><small>10:30 · PHOTO</small><b>Jewel Changi</b></div>
-    <div class="d6-route-arrow">步行 · 約10分 →</div>
-    <div class="d6-route-stop" data-d6-ribbon="2"><small>12:50 · FLIGHT</small><b>Terminal 3</b></div>
-  </div>`;
-}
+
 
 
 
@@ -2270,8 +2232,7 @@ function panelHTML(day){
           (CINEMATIC_DAYS.has(day)?'<div class="cinematic-swipe-hint">SWIPE ◀︎ / ▶︎</div>':'') +
         '</div>' +
         cinematicControlsHTML(day) +
-        (day==='6' ? day6RouteRibbonHTML()+'<p class="d6-clean-map-note"><b>Clean Base Map</b> · 背景不含預畫 pin／數字／路線；所有地標與進度都由 HTML 即時疊加。</p>' : '') +
-        '<div class="detail-card" id="detail-'+day+'"></div>' +
+        (day==='6' ? '' : '<div class="detail-card" id="detail-'+day+'"></div>') +
         '<div class="legend"><span style="color:var(--brass);"><i></i>起點</span><span style="color:var(--coral);"><i></i>終點</span><span style="color:var(--mist);">Day1/2/3/6 皆依底圖校準；行程 lat/lng 保持為唯一位置來源</span></div>' +
       '</div>';
   } else if(hasMap){
@@ -2443,7 +2404,7 @@ function stopCardHTML(day, i){
     '<div class="stop-body">' +
       '<div class="stop-toprow"><span class="stop-time">'+timeLabel(s)+'</span>'+(state==='current'?'<span class="now-badge">NOW</span>':'')+'</div>' +
       '<div class="stop-name">'+(s.who?'<span class="who-badge">'+s.who+'</span>':'')+s.n+'</div>' +
-      '<div class="stop-dur">'+s.dur+'</div>' +
+      '<div class="stop-dur">'+s.dur+'</div>' + tripReminderHTML(s) +
       shipLocationHTML(day,i) + addrBlock +
     '</div></div>';
 }
